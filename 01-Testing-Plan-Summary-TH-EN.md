@@ -1,30 +1,47 @@
-# 01 - Executive Testing Plan Summary / สรุปแผนการทดสอบสำหรับลูกค้า  
-# ScheduledDefrag / Storage Optimizer Trigger + Cross-Layer Hang/Delay RCA  
-# Windows Server 2022 + Veritas / InfoScale for Windows + VMware + HPE Alletra 9060
+# Testing Plan Summary / สรุปแผนการทดสอบสำหรับลูกค้า  
+## ScheduledDefrag / Storage Optimizer Trigger / Cross-Layer Thin-Reclaimed RCA  
+#### Windows Server 2022, InfoScale for Windows, VMware, HPE Alletra 9060
 
 ---
 
-## 01 Purpose / วัตถุประสงค์
+## Executive Summary / สรุปสำหรับผู้บริหาร
+
+### English
+
+The customer observed a hang/delay of approximately 20 minutes after deleting a large SQL backup file of about 1.2 TB in a Windows Server 2022 VM using Veritas / InfoScale for Windows with HPE Alletra 9060 storage.
+
+The current field observation is that the issue no longer occurs when `DisableDeleteNotify=1`. However, because the customer requires `DisableDeleteNotify=0`, the purpose of this plan is to validate whether **ScheduledDefrag / Storage Optimizer / ReTrim** is the trigger for delayed **UNMAP(TRIM)** activity and to determine where the hang/delay occurs across the infrastructure stack.
+
+The main customer-facing approach is:
+
+- Reproduce the issue in a baseline condition
+- Isolate whether disabling ScheduledDefrag changes the behavior
+- Validate the current workaround as a comparison point
+- Collect evidence across Windows, Veritas, VMware, and HPE Alletra 9060 so that the next RCA action can focus on the correct layer
+
+ลูกค้าพบอาการ hang/delay ประมาณ 20 นาที หลังลบไฟล์ SQL backup ขนาดประมาณ 1.2 TB ภายใน VM ที่เป็น Windows Server 2022 ใช้งานร่วมกับ Veritas / InfoScale for Windows และ HPE Alletra 9060 storage
+
+จาก field observation ปัจจุบัน พบว่าอาการดังกล่าวไม่เกิดเมื่อกำหนด `DisableDeleteNotify=1` แต่เนื่องจากลูกค้าต้องการใช้งานด้วย `DisableDeleteNotify=0` แผนนี้จึงมีเป้าหมายเพื่อพิสูจน์ว่า **ScheduledDefrag / Storage Optimizer / ReTrim** เป็น trigger ของ delayed **UNMAP(TRIM)** หรือไม่ และเพื่อระบุว่าอาการ hang/delay เกิดที่ layer ใดใน infrastructure stack
+
+แนวทางหลักที่ใช้ในการสื่อสารกับลูกค้าคือ:
+
+- ทำ baseline เพื่อ reproduce อาการ
+- isolate ว่าการปิด ScheduledDefrag เปลี่ยนพฤติกรรมหรือไม่
+- validate workaround ปัจจุบันในฐานะ comparison point
+- เก็บหลักฐานจาก Windows, Veritas, VMware และ HPE Alletra 9060 เพื่อให้ next RCA action ลงลึกใน layer ที่ถูกต้อง
+
+---
+
+## 02 Purpose and Objectives / วัตถุประสงค์และเป้าหมาย
 
 ### English
 
 This testing plan is designed to validate whether **Windows ScheduledDefrag / Storage Optimizer / ReTrim** is the trigger for delayed **UNMAP(TRIM)** activity after large SQL backup file deletion, and to identify where the observed hang/delay occurs across the infrastructure stack.
 
-### ภาษาไทย
+The main objectives are:
 
-แผนการทดสอบนี้มีวัตถุประสงค์เพื่อพิสูจน์ว่า **Windows ScheduledDefrag / Storage Optimizer / ReTrim** เป็น trigger ของ delayed **UNMAP(TRIM)** หลังลบไฟล์ SQL backup ขนาดใหญ่หรือไม่ และเพื่อหาว่าอาการ hang/delay เกิดที่ layer ใดใน infrastructure stack
-
----
-
-## 02 Objectives / เป้าหมายหลัก
-
-### Objective 1 — Trigger Validation / พิสูจน์ Trigger
-
-Confirm whether **ScheduledDefrag / Storage Optimizer / ReTrim** triggers UNMAP(TRIM) operations following large file deletion.
-
-### Objective 2 — Root Cause Layer Isolation / หาต้นตอว่า hang/delay อยู่ที่ layer ไหน
-
-Identify where the hang/delay occurs or propagates:
+- Validate whether **ScheduledDefrag / Storage Optimizer / ReTrim** triggers UNMAP(TRIM) activity following large file deletion
+- Isolate where the observed hang/delay occurs or propagates across the stack:
 
 ```text
 Windows Server 2022 guest OS
@@ -33,16 +50,25 @@ VMware virtual disk / datastore
 HPE Alletra 9060 backend storage
 ```
 
-### Objective 3 — Customer-Facing Decision Support / สนับสนุนการตัดสินใจร่วมกับลูกค้า
+- Produce a structured evidence set that supports the next RCA action on the correct layer
+- Confirm whether the current workaround changes the observed behavior, while keeping `DisableDeleteNotify=0` as the main customer requirement for trigger isolation
 
-Provide a structured evidence set that helps determine whether the next action should focus on:
+แผนการทดสอบนี้มีวัตถุประสงค์เพื่อพิสูจน์ว่า **Windows ScheduledDefrag / Storage Optimizer / ReTrim** เป็น trigger ของ delayed **UNMAP(TRIM)** หลังลบไฟล์ SQL backup ขนาดใหญ่หรือไม่ และเพื่อหาว่าอาการ hang/delay เกิดที่ layer ใดใน infrastructure stack
+
+เป้าหมายหลักของแผนมีดังนี้:
+
+- พิสูจน์ว่า **ScheduledDefrag / Storage Optimizer / ReTrim** เป็น trigger ของ UNMAP(TRIM) หลังการลบไฟล์ขนาดใหญ่หรือไม่
+- แยกให้ได้ว่าอาการ hang/delay เกิดขึ้นหรือ propagate ที่ layer ใด:
 
 ```text
-Windows / optimizer behavior validation
-Veritas / vxio path analysis
-VMware virtual layer analysis
-HPE Alletra 9060 reclaim / array behavior analysis
+Windows Server 2022 guest OS
+Veritas / InfoScale for Windows / vxio
+VMware virtual disk / datastore
+HPE Alletra 9060 backend storage
 ```
+
+- สร้างชุดหลักฐานที่ช่วยชี้ว่า next RCA action ควรลงลึกที่ layer ใด
+- ยืนยันว่า workaround ปัจจุบันมีผลต่อพฤติกรรมที่พบอย่างไร โดยยังคง `DisableDeleteNotify=0` เป็น customer requirement หลักสำหรับการ isolate trigger
 
 ---
 
@@ -52,8 +78,6 @@ HPE Alletra 9060 reclaim / array behavior analysis
 
 The current working hypothesis is that the customer-visible hang/delay may be associated with **Storage Optimizer / ReTrim-driven UNMAP activity** after large file deletion, rather than with the delete action alone.  
 This plan is intentionally designed to validate or disprove that hypothesis with cross-layer evidence.
-
-### ภาษาไทย
 
 สมมติฐานการทดสอบปัจจุบันคือ อาการ hang/delay ที่ลูกค้าพบอาจสัมพันธ์กับ **Storage Optimizer / ReTrim-driven UNMAP activity** หลังลบไฟล์ขนาดใหญ่ มากกว่าจะเกิดจากคำสั่งลบไฟล์เพียงอย่างเดียว  
 ดังนั้นแผนนี้จึงถูกออกแบบมาเพื่อพิสูจน์หรือหักล้างสมมติฐานดังกล่าวด้วยหลักฐานจากหลาย layer
@@ -311,19 +335,22 @@ Scenario C: C:\Temp\TrimTest-C-Mitigation
 
 ---
 
-## 11 Interpretation Logic / Logic การแปลผล
+## 11 Interpretation Logic / วิเคราะห์ผลทดสอบ
 
-| Observation | Interpretation |
-|---|---|
-| Scenario A hangs, Scenario B does not | ScheduledDefrag / Storage Optimizer / ReTrim strongly indicated as trigger |
-| Scenario A and B both hang | Trigger may be another UNMAP path or storage/path issue |
-| Scenario C does not hang | DisableDeleteNotify=1 mitigation is effective |
-| Windows latency spike only | Windows / filesystem / Veritas layer likely |
-| VMware datastore latency spike | VMware datastore / virtual disk layer involved |
-| HPE Alletra 9060 latency spike | Backend storage / reclaim / array layer involved |
-| All layers spike together | Backend propagation or storage stall likely |
-| defrag.exe appears in B/C | Another policy/task/script/tool may be invoking optimizer |
-| Defrag Operational event appears while ScheduledDefrag disabled | Check Optimize-Volume, policy, third-party tools, or manual trigger |
+Use the matrix below during result review. Mark `Yes` or `No` based on the evidence collected in each scenario.
+
+ใช้ตารางด้านล่างระหว่างการ review ผลทดสอบ โดยทำเครื่องหมาย `Yes` หรือ `No` ตามหลักฐานที่เก็บได้ในแต่ละ scenario
+
+| Area | Checkpoint / Expected Evidence | Yes | No | Meaning if Yes |
+|---|---|---|---|---|
+| Trigger | Scenario A: issue is reproduced under baseline condition | `☐` | `☐` | Baseline issue confirmed |
+| Trigger | Scenario B: with `DisableDeleteNotify=0` and ScheduledDefrag = disabled, issue is not reproduced | `☐` | `☐` | ScheduledDefrag / Storage Optimizer / ReTrim is likely trigger |
+| Trigger | Scenario C: with `DisableDeleteNotify=1` and ScheduledDefrag = disabled, issue is not reproduced | `☐` | `☐` | Workaround behavior confirmed |
+| Layer | Windows evidence shows latency spike at issue time | `☐` | `☐` | Windows / filesystem / Veritas layer involved |
+| Layer | VMware evidence shows latency spike at issue time | `☐` | `☐` | VMware layer involved |
+| Layer | HPE Alletra 9060 evidence shows latency spike at issue time | `☐` | `☐` | Backend storage / reclaim layer involved |
+| Layer | Windows, VMware, and HPE Alletra 9060 show spikes at the same time | `☐` | `☐` | Backend propagation or shared-path stall is possible |
+| Optimizer path | Optimizer activity is still observed while ScheduledDefrag = disabled | `☐` | `☐` | Another optimizer trigger may exist; check `defrag.exe`, Defrag Operational events, `Optimize-Volume`, policy, third-party tools, or manual trigger |
 
 ---
 
