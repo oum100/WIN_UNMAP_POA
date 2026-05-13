@@ -1,0 +1,14 @@
+{
+  "powershell.enableProfileLoading": false,
+  "powershell.scriptAnalysis.enable": true,
+  "powershell.scriptAnalysis.settingsPath": ".vscode/PSScriptAnalyzerSettings.psd1",
+  "powershell.codeFormatting.preset": "OTBS",
+  "powershell.integratedConsole.focusConsoleOnExecute": true,
+  "files.exclude": {
+    "**/*.zip": true
+  },
+  "search.exclude": {
+    "**/*.zip": true
+  },
+  "testing.automaticallyOpenPeekView": "never"
+}

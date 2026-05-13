@@ -1,0 +1,116 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "PowerShell: Install Pester CurrentUser",
+      "type": "shell",
+      "command": "powershell",
+      "osx": {
+        "command": "pwsh"
+      },
+      "linux": {
+        "command": "pwsh"
+      },
+      "args": [
+        "-NoLogo",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "Install-Module Pester -Scope CurrentUser -Force -SkipPublisherCheck"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "PowerShell: Run Script Analyzer",
+      "type": "shell",
+      "command": "powershell",
+      "osx": {
+        "command": "pwsh"
+      },
+      "linux": {
+        "command": "pwsh"
+      },
+      "args": [
+        "-NoLogo",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "Import-Module PSScriptAnalyzer; Invoke-ScriptAnalyzer -Path . -Recurse -Settings .vscode/PSScriptAnalyzerSettings.psd1 | Format-Table -AutoSize"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "PowerShell: Run Pester Smoke Tests",
+      "type": "shell",
+      "command": "powershell",
+      "osx": {
+        "command": "pwsh"
+      },
+      "linux": {
+        "command": "pwsh"
+      },
+      "args": [
+        "-NoLogo",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "Import-Module Pester -MinimumVersion 5.0; Invoke-Pester -Path ./tests -Output Detailed"
+      ],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "PowerShell: Validate Local Prereqs (Windows only)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoLogo",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        ".\\11-Validate-TrimTestPrereqs.ps1"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "PowerShell: Validate Local Prereqs + VMware + Alletra (Windows only)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoLogo",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        ".\\11-Validate-TrimTestPrereqs.ps1",
+        "-CheckVMware",
+        "-CheckAlletra"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "PowerShell: macOS Static Validation Bundle",
+      "type": "shell",
+      "command": "pwsh",
+      "args": [
+        "-NoLogo",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "Import-Module PSScriptAnalyzer; Invoke-ScriptAnalyzer -Path . -Recurse -Settings .vscode/PSScriptAnalyzerSettings.psd1 | Format-Table -AutoSize; Import-Module Pester -MinimumVersion 5.0; Invoke-Pester -Path ./tests -Output Detailed"
+      ],
+      "osx": {
+        "command": "pwsh"
+      },
+      "linux": {
+        "command": "pwsh"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
